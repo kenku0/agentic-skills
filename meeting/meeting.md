@@ -727,7 +727,7 @@ Convert entity name to filename slug:
 **Examples:**
 - "Acme Corp" → `acme-corp`
 - "Jane Doe" → `jane-doe`
-- "Digital Vorn (Japan)" → `digital-vorn-japan`
+- "Tokyo Design Lab (Japan)" → `tokyo-design-lab-japan`
 
 ---
 
