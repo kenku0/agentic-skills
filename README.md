@@ -4,6 +4,18 @@ Open-source skill definitions for AI-assisted workflows. Each skill is a `.md` f
 
 These are redacted versions of production skills — company names, personal paths, and brand-specific details have been replaced with placeholders. The patterns, prompt engineering, and architecture are the real thing.
 
+**Read the deep dives on how these were built:** [ken9u.substack.com](https://ken9u.substack.com/)
+
+---
+
+## A Note on Tools
+
+**You don't need any of the included scripts to get started.** Claude Code has built-in `WebSearch` and `WebFetch` tools that handle most research and scraping out of the box — zero API keys, zero setup.
+
+The Python scripts (Exa, Firecrawl, Reddit API) are optional power-ups that add coverage, speed, and specialized access. Use them if you want, swap in your own preferred tools (Tavily, Brave Search, SearXNG, Jina Reader, etc.), or skip them entirely.
+
+The skill `.md` files — the prompt engineering, parallel agent patterns, source scoring, anti-AI aesthetics — work regardless of which search/scraping tools you plug in.
+
 ---
 
 ## Available Skills
@@ -37,9 +49,9 @@ Each skill has `[PLACEHOLDER]` markers where you should add your own:
 - Output directory conventions
 - API keys (in your `.env`, never in the skill file)
 
-### 3. Run the scripts
+### 3. Run the scripts (optional)
 
-Scripts are standalone Python files. Install dependencies and set env vars:
+Scripts are standalone Python files. Only needed if you want the external API integrations:
 
 ```bash
 pip install requests img2pdf
@@ -48,13 +60,15 @@ export GEMINI_API_KEY=your-key-here
 python3 agentic-skills/slides/gemini_slides.py --test
 ```
 
+**Without any scripts**, the skills still work — Claude Code uses its built-in tools as fallbacks.
+
 ---
 
 ## Architecture
 
 ```
 .claude/commands/skill.md    ← Claude reads this as system prompt
-skills/scripts/script.py     ← Claude calls this via Bash tool
+skills/scripts/script.py     ← Claude calls this via Bash tool (optional)
 .env                         ← API keys (git-ignored)
 ```
 
@@ -65,11 +79,15 @@ The `.md` file tells Claude *what to do* and *how to think*. The Python script h
 ## Requirements
 
 - **Claude Code** (claude.ai/code) — the CLI tool
+
+**Optional (for enhanced capabilities):**
 - **Gemini API key** — for `/slides` image generation
-- **Exa API key** — for `/web-search` semantic search (optional — can use built-in WebSearch instead)
-- **Reddit API credentials** — for `/web-search` community search (optional)
-- **Firecrawl API key** — for `/web-search` page scraping (optional — can use built-in WebFetch instead)
+- **Exa API key** — for `/web-search` semantic search
+- **Reddit API credentials** — for `/web-search` community search
+- **Firecrawl API key** — for `/web-search` page scraping
 - **Python 3.10+** with `requests` and `img2pdf`
+
+Or just use Claude Code's built-in `WebSearch` and `WebFetch` — no extra keys needed.
 
 ---
 
