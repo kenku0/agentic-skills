@@ -24,6 +24,7 @@ The skill `.md` files — the prompt engineering, parallel agent patterns, sourc
 |-------|-------------|---------|
 | **slides** | AI slide generation via Gemini 3 native image gen. Includes anti-AI aesthetic rules, consulting templates, typography enforcement, and iterative refinement loops. | `gemini_slides.py` |
 | **web-search** | Evidence-first research analyst with adaptive depth. Parallel agent discovery, source scoring (0-10), triangulation, and community search. Bring your own search tools or use the included Exa/Firecrawl/Reddit scripts. | `exa_search.py`, `reddit_search.py`, `firecrawl_search.py`, `firecrawl_fetch.py` |
+| **meeting** | Persistent per-contact meeting files that compound over time. Auto-detection (new contact vs follow-up), prep briefs, append routing, dashboard aggregation, and infographic generation. | — |
 
 More skills coming soon.
 
