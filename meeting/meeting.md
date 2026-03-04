@@ -1,50 +1,35 @@
 ---
 description: Multi-phase meeting management — one persistent file per company/contact that accumulates all meetings over time
 argument-hint: [Company or Person] [YYMMDD] [-- notes to append]
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Task, mcp__exa__web_search_exa, mcp__firecrawl__firecrawl_scrape, mcp__firecrawl__firecrawl_search
 ---
 
 # /meeting
 
-Multi-phase meeting management with persistent per-contact files. Like a CRM contact record — one file per relationship that grows over time.
+One persistent file per contact that compounds over time. Pre-meeting research, live capture, post-meeting analysis — all in one place.
 
-## OBSIDIAN VISUAL DEFAULTS (read this first)
+## OBSIDIAN VISUAL DEFAULTS
 
-**Goal:** When you open the note in Obsidian, the top should be scannable in ~10 seconds, while the full detail is still preserved further down.
+- **Scannable in ~10 seconds:** People (`[!quote]+` foldable, starts open) → Meeting Summary (collapsed `[!quote]-` with exec summary, infographic, next steps, meeting history) → (optional) Prep Brief → Latest Meeting (1-pager + agenda at top)
+- **Infographic inside Meeting Summary callout** — visible when callout is expanded
+- **Generate image first**, then embed (avoid broken links)
+- **Checkboxes as state:** `[ ]` pending, `[?]` answered, `[x]` done, `[>]` deferred
+- **Collapsible callouts** for transcripts: `> [!info]- Transcript`
+- **Callout collapse rules:** Default `[!quote]` (consistent gray). Meeting Summary = collapsed (`[!quote]-`). People = foldable, starts open (`[!quote]+`). Latest Meeting: Overview, Notes, Questions, Should-Ask = all `[!quote]+` (open, foldable). Previous Meetings = each meeting in collapsed `[!quote]-`. Nested "Earlier meetings" inside Summary = `[!quote]-`. Transcript = `[!info]-` (blue — semantic: raw data).
+- **Heading-as-link-target pattern:** Callout titles are NOT link targets in Obsidian. When a nav bar links to `[[#Summary]]`, there must be a real `## Summary` heading above the callout. Pattern: `## Summary` (H2 heading for linking) → `> [!quote]- Meeting Summary` (callout for collapsing). Apply to: Summary, Company Profile.
+- **No empty sections** — omit if no real content
 
-- **Keep "Action Center" near the top:** `## People` → `## Meeting Summary` → (optional) `## Prep Brief` → `## Latest Meeting`.
-- **Visual summary should be visible fast:** embed the image **at the top of `## Meeting Summary`**, expanded by default (no collapsed callout).
-- **Avoid broken embeds:** generate the image first; only insert the embed once the asset exists.
-- **Use checkboxes as state:** `- [ ]` for open items/questions, `- [?]` for answered questions (readable), `- [x]` for done, `- [>]` for intentionally deferred.
-- **Put long text behind collapsible callouts:** transcripts always go in `> [!info]- Transcript`.
-- **No empty sections:** if a section has no real content in this mode, omit it entirely.
+---
 
-## VALUE PROPOSITION
-
-**The problem I was solving:**
-Before every meeting, I'd open 10+ tabs — LinkedIn profiles, company website, CrunchBase, recent news — copy-pasting snippets into notes. By meeting #2 with the same person, I'd forgotten half of what we discussed.
-
-**What actually changed:**
-- **One persistent file per contact** (the note compounds over time)
-- **Prep Brief** surfaces unfinished business before the next meeting
-- **Fast append** means I actually keep the file up to date (before/after meetings)
-
-**The specific tools:**
-- **Exa semantic search** — finds company context that keyword search misses
-- **Firecrawl** — scrapes company pages for deep reading
-- **Gemini 3.0** — generates visual meeting summaries for quick reference
-
-<!-- CUSTOMIZE: Add your own discovery tools (LinkedIn API, CrunchBase, etc.) -->
-
-## PERSISTENCE (required)
+## PERSISTENCE
 
 - **Folder:** `1_meetings/`
 - **File path:** `1_meetings/{YYMMDD}-{company-or-person-slug}.md`
 - **Assets:** `1_meetings/assets/` (infographics)
-- **Dashboard:** `1_meetings/_dashboard.md` (aggregated view)
-- **Date in filename:** Latest meeting date (enables chronological sorting)
+- **Dashboard:** `1_meetings/_dashboard.md`
+- **Date in filename:** Latest meeting date (chronological sorting)
 
-<!-- CUSTOMIZE: Change folder paths to match your project structure -->
+---
 
 ## ARGUMENT PARSING
 
@@ -52,31 +37,27 @@ Before every meeting, I'd open 10+ tabs — LinkedIn profiles, company website, 
 $ARGUMENTS
 </meeting_args>
 
-**Parse the arguments:**
-1. **Entity name:** First part before any date or `--` (e.g., "Acme Corp", "Jane Doe")
-2. **Date (optional):** 6-digit `YYMMDD` format (e.g., `260130`). If absent, use today's date.
-3. **Notes (optional):** Everything after `--` is content to append
+1. **Entity name:** First part before any date or `--`
+2. **Date (optional):** 6-digit `YYMMDD`. If absent, use today.
+3. **Notes (optional):** Everything after `--`
 
 **Examples:**
-- `/meeting Acme Corp` → Entity: "Acme Corp", Date: today, Notes: none
-- `/meeting Acme Corp 260130` → Entity: "Acme Corp", Date: 2026-01-30, Notes: none
-- `/meeting Acme Corp -- Ask about Q2 roadmap` → Entity: "Acme Corp", Date: today, Notes: "Ask about Q2 roadmap"
+- `/meeting Acme Corp` → Entity: "Acme Corp", Date: today
 - `/meeting Acme Corp 260130 -- Follow up on partnership` → All three parts
 
 ---
 
-## MODE DETECTION (Auto-Detected)
+## MODE DETECTION
 
-Check for existing file:
 ```
 Glob: 1_meetings/*-{slug}.md
 ```
 
 | Condition | Mode | Action |
 |-----------|------|--------|
-| No file for this entity | **New Contact** | Create file → Full research appends |
-| File exists, no section for specified date | **New Meeting** | Add meeting section → Quick update appends |
-| File exists, section for specified date exists | **Same Meeting** | Append to existing section (no research) |
+| No file exists | **New Contact** | Create file → Full research |
+| File exists, no section for date | **New Meeting** | Rotate latest → history, fresh section, quick update |
+| File exists, section for date exists | **Same Meeting** | Append to existing section (no research) |
 
 ---
 
@@ -87,94 +68,154 @@ Glob: 1_meetings/*-{slug}.md
 ```
 1. Parse arguments → Detect mode
 2. CREATE/UPDATE FILE IMMEDIATELY
-   - New Contact: Create file with template
-   - New Meeting: Rotate latest → history, create fresh section
-   - Same Meeting: Append content to appropriate subsection
-3. SHOW USER the file path (they can start using it)
-4. RUN RESEARCH (if needed)
-   - New Contact: Full company/person research
-   - New Meeting: Quick news update + generate Prep Brief
-   - Same Meeting: No research
-5. APPEND RESEARCH RESULTS to file
-6. GENERATE INFOGRAPHIC (if substantial content)
-7. UPDATE DASHBOARD (scan all meeting files, rebuild tables)
+3. SHOW USER the file path
+4. RUN RESEARCH (if New Contact or New Meeting)
+5. APPEND RESEARCH RESULTS
+6. GENERATE INSIGHTS (AI) — if substantial meeting content
+7. GENERATE INFOGRAPHIC — if substantial content
+8. UPDATE DASHBOARD
 ```
 
 ---
 
-## FILE STRUCTURE TEMPLATE
+## FILE STRUCTURE
 
-### Section Order (Action-Oriented)
+### Top-Level Section Order
 
-When you return to a meeting file, the most useful info should be visible first:
-
-**First Meeting (New Contact):**
+**First Meeting:**
 ```
 # Company Name
-[links] · [[#People|People]] · [[#Meeting Summary|Summary]] · [[#Latest Meeting|Latest Meeting]]
+🔗 [website] · [[#People|People]] · [[#Summary|Summary]] · [[#Latest Meeting|Latest]] · [[#Company Profile|Profile]]
+📁 {Related files}
 
-## People                    ← Who you're meeting (at top)
-## Meeting Summary           ← Executive brief + infographic
-## Latest Meeting            ← Current meeting details
-## Profile                   ← Company background
+> [!quote]+ People      ← Foldable, starts expanded (same gray as Meeting Summary)
+## Summary               ← H2 heading (link target) + `[!quote]-` callout below
+## Latest Meeting
+## Company Profile       ← H2 heading + `[!quote]+` callout below
 ## Key Sources
 ## Change Log
 ```
 
-**Follow-Up Meeting (Existing Contact):**
+**Follow-Up Meeting:**
 ```
-# Company Name
-[links] · [[#People|People]] · [[#Meeting Summary|Summary]] · [[#Prep Brief|Prep Brief]] · [[#Latest Meeting|Latest Meeting]]
+🔗 [website] · [[#People|People]] · [[#Summary|Summary]] · [[#Prep Brief|Prep]] · [[#Latest Meeting|Latest]] · [[#Previous Meetings|Previous]] · [[#Company Profile|Profile]]
+📁 {Related files — partner, project, deliverables, LOA}
 
-## People
-## Meeting Summary           ← Updated executive brief
-## Prep Brief               ← Follow-ups + what to remember before this meeting
-## Latest Meeting            ← Current meeting details
-## Previous Summary          ← Quick reference to last meeting
-## Profile
-## Meeting History           ← Full archive
+> [!quote]+ People      ← Foldable, starts expanded (same gray as Meeting Summary)
+## Summary               ← H2 heading (link target) + `[!quote]-` callout below (exec summary + infographic + next steps)
+## Prep Brief            ← Context to remember + platform intel + key decisions
+## Latest Meeting
+## Previous Meetings     ← Each meeting in its own `[!quote]-` callout (summary + full notes + transcript inside)
+## Company Profile       ← H2 heading + `[!quote]+` callout below
 ## Key Sources
 ## Change Log
 ```
 
 ### Latest Meeting Subsection Order
 
-Within Latest Meeting, ordered for **live capture** → **pre-meeting prep** → **post-meeting review**:
+Ordered for **live capture** → **pre-meeting prep** → **post-meeting review**:
 
-| Position | Section | Purpose |
-|----------|---------|---------|
-| 1 | **Notes** | Live note-taking — first thing you see for easy capture |
-| 2 | **My Prep** | What you planned to cover (pre-meeting) |
-| 3 | **Actions** | Next steps — most actionable info |
-| 4 | **Reflection** | Self-feedback (post-meeting) |
-| 5 | **Discussed** | What was covered (reference) |
-| 6 | **Pre-Meeting Context** | Background captured before meeting (travel, logistics) |
-| 7 | **Transcript** | Full record (collapsed callout) |
+**Most elements use `[!quote]+` callouts** — consistent gray, foldable, starts expanded. **Exception: Notes uses plain bullets** (no callout) for frictionless live note-taking without exiting reader mode.
+
+| # | Element | Format | Purpose |
+|---|---------|--------|---------|
+| 0 | **1-Pager** | `![[image]]` | Pre-meeting visual summary; replaced with outcomes post-meeting |
+| 1 | **Overview** | `[!quote]+` | Description + agenda + logistics (one box) |
+| 2 | **Notes** | `####` + plain bullets | Live note-taking — NO callout (callouts require exiting reader mode to edit) |
+| 3 | **Questions & Talking Points** | `[!quote]+` | Must-ask + surface-through-walkthrough + talking points |
+| 4 | **Should-Ask (if time)** | `[!quote]+` | Lower-priority questions |
+| 5 | **Actions** | `####` | Next steps (user then AI) — `####` for easy editing |
+| 6 | **Discussed** | `####` | What was covered, questions answered |
+| 7 | **Insights (AI)** | `####` | Post-meeting analysis (generated after transcript/notes) |
+| 8 | **Reflection** | `####` | Pre-meeting: template. Post-meeting: auto-populated, moves up to after Notes |
+| 9 | **Transcript** | `[!info]-` | Full record (collapsed) |
+
+**Post-meeting reorder:** After transcript/substantial notes, Reflection moves up to position 3 (after Notes, before Questions). The 1-pager is also regenerated with outcomes. This surfaces the most important post-meeting content at the top.
+
+### Conditional Section Rules
+
+| Section | First Meeting | Follow-Up |
+|---------|:---:|:---:|
+| People | ✅ (`[!quote]+` — open, foldable) | ✅ (`[!quote]+` — open, foldable, update if new attendee) |
+| Summary | `## Summary` heading + `[!quote]-` callout (exec summary + infographic) | Full (+ Next Steps + Open Questions + Meeting History) |
+| Prep Brief | ❌ | ✅ |
+| Latest Meeting | ✅ | ✅ (fresh template) |
+| Previous Meetings | ❌ | ✅ — each meeting in its own `[!quote]-` callout (summary + full notes + transcript all inside one box) |
+| Company Profile | ✅ (`## Company Profile` heading + `[!quote]+` callout) | ✅ (update if needed) |
+
+**Critical:** Never show placeholder sections. If no real content, omit entirely.
+
+---
+
+## CONTENT CONVENTIONS
 
 ### User vs AI Content
 
-Use separate sections (not individual markers) to distinguish user-added vs AI-generated. **Group all user content first, then all AI content** — so the user can scan their own prep at a glance before seeing AI suggestions:
+Separate sections, user first. Pattern: `{Section name}` for user, `{Section name} (AI)` for AI.
 
 ```markdown
-#### My Prep
-**Questions I want to ask**
-- Your question here
-- Another question
-
-**Talking points**
-- [ ] Your talking point
-
-**Questions I want to ask (AI)**
-- AI suggested question
-- Another AI suggestion
-
-**Talking points (AI)**
-- [ ] AI suggested point
+> [!quote]+ Questions & Talking Points
+> **Must-ask:**
+> 1. Your question
+>
+> **Must-ask (AI):**
+> 1. AI suggested question
+>
+> **Talking points:**
+> - Your talking point
+>
+> **Talking points (AI):**
+> - AI suggested point
 ```
 
-**Pattern:** `{Section name}` for user content, `{Section name} (AI)` for AI suggestions. Same for Talking points, Actions, etc. **Order: all user sections first, then all AI sections.** User sections can be empty if user provided nothing — still show them for easy adding later.
+### Source Hyperlinks in AI Items
 
-### First Meeting Template (New Contact)
+For `(AI)` sections, **add inline hyperlinks to non-obvious claims** so the user can verify.
+
+**Add links for:** specific facts/stats, events/announcements, background claims, named entities.
+**Skip links for:** obvious questions, info already in the file, no reliable URL.
+
+```markdown
+- Your [LinkedIn post](https://...) mentioned 0.5x AI usage — what's driving that?
+- [ ] [Digital Garden Summit](https://...) coming up — what are you speaking about?
+- What does "moving beyond PoC purgatory" look like? ([ref: founding post](https://...))
+```
+
+### Checkbox Conventions
+
+| Syntax | Use | Appearance |
+|--------|-----|------------|
+| `- [ ]` | Pending / unanswered | Empty |
+| `- [?]` | Answered (readable) | Checked, **no strikethrough** |
+| `- [x]` | Completed | Checked, subtle fade |
+| `- [>]` | Deferred | Arrow, de-emphasized |
+
+### Questions Formatting
+
+- **4+ questions:** Group by topic with bold headers
+- **<4 questions:** Flat bullet list
+
+### People Formatting
+
+People section uses `[!quote]+` — foldable, starts expanded, same gray as Meeting Summary.
+
+```markdown
+> [!quote]+ People
+>
+> ### Person Name
+> **Title** · [LinkedIn](url)
+>
+> > Background line 1
+> > Background line 2
+
+📅 First meeting: YYYY-MM-DD
+```
+
+---
+
+## TEMPLATES
+
+### First Meeting (New Contact)
 
 ```markdown
 ---
@@ -192,65 +233,107 @@ tags: [meetings, {industry}]
 
 # {Company/Person}
 
-🔗 [{domain}]({url}) · [[#People|People]] · [[#Meeting Summary|Summary]] · [[#Latest Meeting|Latest Meeting]]
+🔗 [{domain}]({url}) · [[#People|People]] · [[#Summary|Summary]] · [[#Latest Meeting|Latest]] · [[#Company Profile|Profile]]
+📁 {Related files — [[partner meeting file\|Partner]], [[project files\|Project]], [[deliverables\|Deliverable]] as applicable}
 
 ---
 
-## People
-
-### {Person Name}
-**{Title}** · [LinkedIn]({url})
-
-> {Background line 1 — credentials, prev companies}
-> {Background line 2 — location, personal notes}
-
-📅 First meeting: {YYYY-MM-DD}
+> [!quote]+ People
+>
+> ### {Person Name}
+> **{Title}** · [LinkedIn]({url})
+>
+> > {Background}
+>
+> 📅 First meeting: {YYYY-MM-DD}
 
 ---
 
-## Meeting Summary
+## Summary
 
-### At a Glance
-| | |
-|---|---|
-| Meetings | 1 ({Mon DD}) |
-| Relationship | {Status} |
-
-<!-- For first meetings: Only show At a Glance. Add Next Steps/Open Questions after meeting when there's real content. -->
+> [!quote]- Meeting Summary
+>
+> ![[1_meetings/assets/{YYMMDD}-{slug}-summary.png]]
+>
+> #### Executive Summary
+>
+> **Engagement:** {What we're doing, fee, timeline, status}
+>
+> **What we've built:** {Deliverables with [[wikilinks]], research done, new intel — link to key files}
+>
+> **What's next:** {Next meeting/milestone, key questions to resolve}
+>
+> **Our edge:** {Sharpest positioning angle with specific numbers}
+>
+> ---
+>
+> #### Meeting History
+> *(reverse chronological — last 3 visible, older entries folded)*
+>
+> - **{Date} — [[#Latest Meeting\|Next meeting]]:** {Purpose, who's attending.} ← Next
+> - **{Date} — [[#section\|Meeting label]]:** {2-3 sentence summary.}
+> - **{Date} — [[other-file#section\|Partner: label]]:** {Same detail level.}
+>
+> > [!quote]- Earlier meetings ({N} more)
+> > - **{Date} — [[link\|Label]]:** {Summary.}
+> > - **{Date} — [[link\|Label]]:** {Summary.}
+>
+> ---
+>
+> #### Next Steps
+> <!-- Chronological — soonest first -->
+> - [ ] {Action item} (~{M/DD})
+>
+> #### Open Questions
+> - [ ] {Question}
 
 ---
 
 ## Latest Meeting
 
-### {YYYY-MM-DD} — {Brief Topic/Purpose}
+### {YYYY-MM-DD} — {Brief Topic}
+
+![[1_meetings/assets/{YYMMDD}-{slug}-meeting.png]]
+
+> [!quote]+ Overview
 > **{Mon DD}** · {Platform} · {Attendees}
-> *{Purpose — 1 sentence}*
+> *{Purpose}*
+>
+> **Agenda**
+> - **{Item 1}** — {Description}
+> - **{Item 2}** — {Description}
+> - **{Item 3}** — {Description}
+>
+> **Logistics:** {1-line abbreviated: key status items separated by · }
 
 #### Notes
 -
 
-#### My Prep
-**Questions I want to ask**
--
+> [!quote]+ Questions & Talking Points
+> **Must-ask:**
+> 1. {Question}
+>
+> **Must-ask (AI):**
+> 1. {AI question}
+>
+> **Talking points:**
+> - {Point}
+>
+> **Talking points (AI):**
+> - {AI point}
 
-**Talking points**
-- [ ]
-
-**Questions I want to ask (AI)**
-- {AI suggested question}
-
-**Talking points (AI)**
-- [ ] {AI suggested point}
+> [!quote]+ Should-Ask (if time)
+> {Lower-priority questions}
 
 #### Actions
 **Mine**
 - [ ]
 
 **Mine (AI)**
-- [ ] {AI suggested task}
+- [ ] {AI task}
 
 **Theirs (AI)**
-- [ ] {AI suggested task}
+- [ ] {AI task}
 
 #### Discussed
 **Questions answered:**
@@ -259,37 +342,43 @@ tags: [meetings, {industry}]
 **Key topics:**
 - {Topic}
 
+#### Insights (AI)
+{Post-meeting analysis — generated after notes/transcript appended}
+
 #### Reflection
 **How it went:** 🟢 / 🟡 / 🔴
-**What worked:** {Brief}
-**To improve:** {Brief}
-
-#### Pre-Meeting Context
-{Travel, logistics, background notes}
+**What worked:**
+**To improve:**
 
 > [!info]- Transcript
 > {Paste here}
 
 ---
 
-## Profile
+## Company Profile
 
-| | |
-|---|---|
-| **What** | {Description} |
-| **Size** | {Employees/size} |
-| **HQ** | {Location} |
-| **Founded** | {Year} |
-
-### Recent News
-
-| Date | Development |
-|------|-------------|
-| {Mon YYYY} | {Event} — [source]({url}) |
+> [!quote]+ Company Profile
+>
+> ![[1_meetings/assets/{YYMMDD}-{slug}-profile.png]]
+>
+> | | |
+> |---|---|
+> | **What** | {Description} |
+> | **Size** | {Employees/size} |
+> | **HQ** | {Location} |
+> | **Founded** | {Year} |
+>
+> **Recent News**
+>
+> | Date | Development |
+> |------|-------------|
+> | {Mon YYYY} | {Event} — [source]({url}) |
 
 ---
 
 ## Key Sources
+
+**Note:** Escape `|` in wikilinks inside tables: `[[path\|Display]]` (backslash before pipe).
 
 | Source | Link |
 |--------|------|
@@ -303,160 +392,179 @@ tags: [meetings, {industry}]
 - {YYYY-MM-DD}: Created for {purpose}
 ```
 
-### Follow-Up Meeting Template (Existing Contact)
-
-Additional sections to include when file already exists:
+### Follow-Up Meeting (Additional Sections)
 
 ```markdown
-## Meeting Summary
+## Summary
 
-<!-- After generating the infographic, insert the embed here (expanded). -->
-![[1_meetings/assets/{YYMMDD}-{slug}-summary.png]]
-
-### At a Glance
-
-| | |
-|---|---|
-| Meetings | {N} ({dates}) |
-| Relationship | {Status} |
-| Last discussed | {Key topics} |
-
-<!-- Next Steps and Open Questions: Only add when there's real content from previous meetings -->
-### Next Steps
-- [ ] {Real action item from meeting}
-
-### Open Questions
-- [ ] {Real question to ask them}
+> [!quote]- Meeting Summary
+>
+> ![[1_meetings/assets/{YYMMDD}-{slug}-summary.png]]
+>
+> #### Executive Summary
+>
+> **Engagement:** {What we're doing, fee, timeline, status}
+>
+> **What we've built:** {Deliverables with [[wikilinks]], research done, new intel — link to key files}
+>
+> **What's next:** {Next meeting/milestone, key questions to resolve}
+>
+> **Our edge:** {Sharpest positioning angle with specific numbers}
+>
+> ---
+>
+> #### Meeting History
+> *(reverse chronological — last 3 visible, older entries folded)*
+>
+> - **{Date} — [[#Latest Meeting\|Next meeting]]:** {Purpose, who's attending.} ← Next
+> - **{Date} — [[#section\|Meeting label]]:** {2-3 sentence summary.}
+> - **{Date} — [[other-file#section\|Partner: label]]:** {Same detail level.}
+>
+> > [!quote]- Earlier meetings ({N} more)
+> > - **{Date} — [[link\|Label]]:** {Summary.}
+> > - **{Date} — [[link\|Label]]:** {Summary.}
+>
+> ---
+>
+> #### Next Steps
+> <!-- Chronological — soonest first -->
+> - [ ] {Action item} (~{M/DD})
+>
+> #### Open Questions
+> - [ ] {Question}
 
 ---
 
 ## Prep Brief
 
 ### Follow-Up Items
-- {Open action item from previous meeting}
-- {Unresolved topic}
+- {Open action from previous meeting}
 
 ### Context to Remember
 - {Key point from last meeting}
-- {Personal detail they shared}
 
 ---
 
-## Previous Summary
+## Previous Meetings
 
-**{YYYY-MM-DD}** — {Topic}
+Reverse chronological — each meeting in its own `[!quote]-` callout. Summary at top, full notes below separator, transcript nested at bottom.
 
-**Key outcomes:**
-- {Main decision/discussion}
-
-**Open items:**
-- {Unchecked action items}
-
----
-
-## Meeting History
-
-> [!note]- {YYYY-MM-DD} — {Topic}
-> > **{Mon DD}** · {Platform} · {Attendees}
-> > *{Purpose — 1 sentence}*
+> [!quote]- {Mon DD} — {Topic} ({emoji})
 >
-> **Key outcomes:**
-> - {Outcome 1}
-> - {Outcome 2}
+> ![[1_meetings/assets/{YYMMDD}-{slug}-meeting.png]]
 >
-> **Actions:**
-> - [ ] {Open item}
->
-> **Notes:**
-> {Detailed notes here}
-```
-
-### Conditional Section Rules
-
-| Section | First Meeting | Follow-Up Meeting |
-|---------|---------------|-------------------|
-| People | Show | Show (update if new attendee) |
-| Meeting Summary | At a Glance only | Full (with Next Steps/Open Questions) |
-| Prep Brief | Omit | Show with real content |
-| Latest Meeting | Show | Show (fresh template) |
-| Previous Summary | Omit | Show with real content |
-| Profile | Show | Show (update if needed) |
-| Meeting History | Omit | Show with archived meetings |
-| Key Sources | Show | Show |
-| Change Log | Show | Show |
-
-**Critical rules:**
-- Never show placeholder sections. If no real content, omit entirely.
-- **First meetings:** Meeting Summary only has "At a Glance" table. Add Next Steps/Open Questions after meeting when there's real content.
-- **AI markers:** Add `(AI)` suffix to AI-generated items in My Prep, Actions, etc. User-added content has no marker.
-
-### Checkbox Conventions
-
-| Syntax | Meaning | Visual Appearance |
-|--------|---------|-------------------|
-| `- [ ]` | Pending task / unanswered question | Empty checkbox |
-| `- [?]` | Answered question (readable) | Filled checkbox, **no strikethrough** |
-| `- [x]` | Completed action item | Filled checkbox, subtle fade |
-| `- [>]` | Deferred / moved | Arrow indicator, de-emphasized |
-
-**Critical:** Use `[?]` for answered questions so the answer remains readable. Use `[>]` when you intentionally move/defer an item but want it to remain visible without looking "done".
-
-Example:
-```markdown
-#### Discussed
-
-**Questions answered:**
-- [?] What's the pricing model? → *Mid-market $25-80k, enterprise low-mid 6 figures*
-- [?] How does deal sourcing work? → *Consultative: identify top 3 ROI opportunities*
-- [ ] What happens to the IP? *(not covered)*
-```
-
-### Questions Formatting
-
-**4+ questions:** Group by topic with bold headers, use bullets
-```markdown
-#### My Prep
-
-**Questions I want to ask:**
-
-**Business Model**
-- How does deal sourcing work?
-- What's the pricing model?
-
-**Operations**
-- What's the team structure?
-- How long are projects typically?
-```
-
-**<4 questions:** Keep flat bullet list (no grouping needed)
-```markdown
-#### My Prep
-
-**Questions I want to ask:**
-- How does deal sourcing work?
-- What's the team structure?
-```
-
-### People Section Formatting
-
-**Inline format (not tables):**
-```markdown
-### {Person Name}
-**{Title}** · [LinkedIn]({url})
-
-> {Background — credentials, previous companies}
-> {Location, personal notes}
-
-📅 Met: {YYYY-MM-DD} (intro call)
-```
-
-### Quick Ref Formatting
-
-**Compact blockquote (not table):**
-```markdown
 > **{Mon DD}** · {Platform} · {Attendees}
-> *{Purpose — 1 sentence}*
+> *{Purpose}*
+>
+> **Key outcomes:** {2-3 sentences}
+> **What we learned:** {3-5 bullets}
+> **Open items carried forward:** {comma-separated list}
+>
+> ---
+>
+> **Full Notes:**
+> {Detailed notes, actions, questions answered}
+>
+> **Insights (AI):**
+> {Post-meeting analysis}
+>
+> > [!info]- Transcript
+> > {link or content}
+
+> [!quote]- {Earlier Date} — {Topic} ({emoji})
+>
+> {Same structure — summary + full notes + transcript all in one callout}
 ```
+
+---
+
+## AI MEETING INSIGHTS
+
+### Executive Summary (in Meeting Summary)
+
+Every meeting file gets an **Executive Summary** inside the `[!quote]- Meeting Summary` callout (under `## Summary`), above the infographic.
+
+**Structure:** `## Summary` heading (link target) → `> [!quote]- Meeting Summary` collapsed callout containing 4 bold-labeled fields + meeting timeline:
+1. **Engagement:** Who, what, fee, timeline, status
+2. **What we've built:** Deliverables with `[[wikilinks]]` to key files, research, new intel
+3. **What's next:** Next meeting/milestone, pending questions
+4. **Our edge:** Sharpest positioning with specific numbers
+Plus `#### Meeting History` (reverse chronological, last 3 visible, older in nested `> [!quote]- Earlier meetings (N more)` callout), `#### Next Steps`, `#### Open Questions`.
+
+**Omit sections that don't apply** (e.g., first meeting has no "What we've built"). Keep each section to 1-3 sentences. Use `[[wikilinks]]` for deliverables and `[[#heading]]` links for meeting history so everything is clickable in Obsidian.
+
+**When to write/update:**
+- **New Contact:** Write initial summary from research + meeting purpose
+- **New Meeting:** Update with latest outcomes + upcoming context
+- **Post-transcript:** Rewrite to reflect actual meeting outcomes (not just prep assumptions)
+
+**Style:** Bold-labeled sections with 1-3 sentences each (not flowing prose). A reader who opens this file cold should understand the full situation in 30 seconds. Concrete numbers and dates over vague status updates. Use `[[wikilinks]]` for deliverables and `[[#heading]]` links for meeting history.
+
+---
+
+Generate `#### Insights (AI)` after substantial meeting content is appended.
+
+### When to Generate
+
+| Trigger | Action |
+|---------|--------|
+| Substantial meeting notes appended | Generate Insights + populate Reflection prompts |
+| Transcript pasted | Generate/regenerate Insights + populate Reflection prompts |
+| Manual request (`-- regenerate insights`) | Generate |
+| Light append (single line) | Skip |
+
+**"Substantial":** ≥3 discussion topics, OR structured outcomes/actions, OR transcript.
+
+### Content: 3-5 sentences covering ≥2 of 4 dimensions
+
+1. **Meeting Performance** — How the presenter came across. Positioning, credibility, question quality, power dynamics, rapport. Be specific, not generic praise.
+
+2. **Strategic Observations** — What wasn't said, what was implied. Gaps between stated and real priorities. Timing/urgency signals. Competitive dynamics.
+
+3. **Missed Opportunities** — Prep questions not covered. Follow-up threads not pulled. Information asymmetries not leveraged.
+
+4. **Next Interaction Suggestions** — What to lead with. Concrete value to provide before next meeting. Relationship dynamic to nurture.
+
+### Format
+
+Flowing prose, no headers or bullets. Reads like a trusted advisor's candid debrief.
+
+```markdown
+#### Insights (AI)
+
+The collaboration framing landed well — positioning bilingual prototyping as complementary to their scaling capacity avoids competition. Their internal tools (AI recruiting, VC due diligence) could be a low-stakes first project to build trust. The "12 directions simultaneously" signals pre-PMF — they won't prioritize a partnership without a concrete deal on the table. Lead with a specific project opportunity next time.
+```
+
+### Reflection (Auto-Populated After Transcript)
+
+When a transcript or substantial notes are appended, **auto-populate the Reflection section** with AI-generated prompts based on the actual meeting content. Don't leave the generic template — replace it with specific, actionable reflection questions.
+
+**Template (before transcript):**
+```markdown
+#### Reflection
+**How it went:** 🟢 / 🟡 / 🔴
+**What worked:**
+**To improve:**
+```
+
+**After transcript/notes appended, replace with:**
+```markdown
+#### Reflection
+**How it went:** 🟢 / 🟡 / 🔴
+
+**What worked:**
+- {AI-generated: specific moment from the meeting that landed well}
+- {AI-generated: positioning or framing that was effective}
+
+**To improve:**
+- {AI-generated: specific question or topic that could have been pushed further}
+- {AI-generated: prep gap or missed opportunity from the transcript}
+
+**For next time:**
+- {AI-generated: 1-2 concrete things to do differently or follow up on}
+```
+
+The user fills in `🟢 / 🟡 / 🔴` and edits/adds to the AI-generated bullets. The AI prompts give them something to react to instead of a blank page.
 
 ---
 
@@ -464,280 +572,164 @@ Example:
 
 ### New Contact (Full Research)
 
-**Trigger:** No `1_meetings/*-{slug}.md` file exists
-
-**Research scope (parallel agents recommended):**
+**Parallel agents recommended:**
 
 | Agent | Tool | Query |
 |-------|------|-------|
-| Company Overview | Semantic search (Exa or similar) | "{company} overview what they do" |
-| Key People | Semantic search | "{person name} {company}" |
-| Recent News | Web search (Firecrawl or similar) | "{company} news {year}" with recency filter |
-| Deep Read | Page scraper (Firecrawl or similar) | Company website, about page |
+| Company Overview | `mcp__exa__web_search_exa` | "{company} overview what they do" |
+| Key People | `mcp__exa__web_search_exa` | "{person} {company} LinkedIn" |
+| LinkedIn Profiles | Bright Data (Bash) | Full profile data |
+| Recent News | `mcp__firecrawl__firecrawl_search` | "{company} news 2026" with `tbs: "qdr:m"` |
+| Deep Read | `mcp__firecrawl__firecrawl_scrape` | Company website |
 
-<!-- CUSTOMIZE: Add people-research tools here (CrunchBase, Proxycurl, etc.) -->
+**LinkedIn via Bright Data:**
 
-**Minimum research targets:**
-- Company profile (what they do, size, HQ, funding)
-- Key person profiles (title, background)
-- Recent news (past 6 months)
-- 5+ sources cited in Key Sources
-
-### New Meeting (Quick Update + Prep Brief)
-
-**Trigger:** File exists, but no meeting section for specified date
-
-**Actions:**
-1. Move current "Latest Meeting" content to "Meeting History" (at top, newest first)
-2. Update "Previous Summary" with key outcomes from moved meeting
-3. **Generate "Prep Brief"** based on:
-   - Open action items from previous meeting
-   - Topics that were left unresolved
-   - Personal notes about attendees
-   - Recent company news (quick search)
-4. Create fresh "Latest Meeting" section with template
-5. Rename file with new date: `{YYMMDD}-{slug}.md`
-6. Update frontmatter: `latest_meeting`, `meeting_count`, title
-
-**Quick news search:**
+```bash
+cd "$(git rev-parse --show-toplevel)" && \
+  set -a && source .env && set +a && \
+  python3 ./scripts/brightdata_linkedin.py \
+    --url "https://www.linkedin.com/in/{username}"
 ```
-Semantic search: "{company} news after:{latest_meeting_date}"
-```
+
+Other variants: `--urls urls.txt` (batch), `--type company` (company profile).
+
+**Bright Data vs Exa:** Exa gets name/headline. Bright Data gets full work history, education, languages, awards, projects, network signals. **Always try Bright Data first for meeting prep.**
+
+**Fallback:** If Bright Data returns an error or empty payload, fall back to Exa search: `mcp__exa__web_search_exa` with query `"{person} {company} site:linkedin.com"` (numResults: 5). This recovers name, title, and headline from LinkedIn's indexed metadata.
+
+**Minimum research targets:** Company profile, key person profiles (Bright Data), recent news (6 months), 5+ sources.
+
+### New Meeting (Quick Update)
+
+1. **Backfill infographic** — if previous meeting lacks an infographic, generate one via `/slides` before rotating
+2. Move "Latest Meeting" → "Previous Meetings" (own `[!quote]-` callout with summary + full notes + transcript) + add entry to Meeting History timeline inside Summary callout
+3. Generate "Prep Brief" from open items + recent news
+4. Create fresh "Latest Meeting" section
+5. Update Executive Summary callout with latest context + new meeting history entry
+6. Rename file: `mv` old → `{new-YYMMDD}-{slug}.md` (preserves content, updates date for sorting)
+7. Update frontmatter: `latest_meeting`, `meeting_count`, title
+8. Update cross-references in other files that link to the old filename
 
 ### Same Meeting (Append Only)
 
-**Trigger:** File exists AND section for specified date exists
+Append content to appropriate subsection via pattern matching:
 
-**Action:** Append content to appropriate subsection based on pattern matching (see below)
-
----
-
-## APPEND LOGIC
-
-When `-- <text>` is provided, route to appropriate section:
-
-| Text Pattern | Target Section |
-|--------------|----------------|
-| "ask about", "discuss", "mention", "point:", "talk about" | Latest Meeting > My Prep > Talking points |
-| "question:", "?" at end, "ask:" | Latest Meeting > My Prep > Questions I want to ask |
-| "action:", "todo:", "follow-up:", "send", "schedule", "prepare" | Latest Meeting > Actions > Mine |
-| "they will", "they committed", "they agreed", "they promised" | Latest Meeting > Actions > Theirs |
-| "reflection:", "how it went", "what worked", "to improve" | Latest Meeting > Reflection |
-| "transcript:", "[paste]" | Latest Meeting > Transcript (collapsed callout) |
-| Default (no pattern match) | Latest Meeting > Notes |
-
-**Format when appending:**
-- Talking points: `- [ ] {text}`
-- Questions: `- {text}`
-- Actions: `- [ ] {text} — Due: {date if mentioned}`
-- Notes: `- {text}` or paragraph
-
----
-
-## DASHBOARD UPDATE
-
-After a **New Contact** or **New Meeting** (not Same Meeting appends), update `1_meetings/_dashboard.md`:
-
-1. **Scan all files** in `1_meetings/` (except `_dashboard.md`)
-2. **Extract from frontmatter:**
-   - `entity`, `latest_meeting`, `next_meeting`, `relationship`, `meeting_count`
-3. **Extract from content:**
-   - Action items from "Latest Meeting > Actions" sections
-   - Key outcomes from "Previous Summary"
-4. **Rebuild tables:**
-   - Upcoming: Sort by `next_meeting` ascending
-   - Recent: Sort by `latest_meeting` descending, limit 7 days
-   - Actions: All unchecked `- [ ]` items from action sections
-   - All Contacts: Sort by `latest_meeting` descending
-
----
-
-## FILE RENAME ON NEW MEETING
-
-When adding a new meeting to existing contact:
-
-**Before:** `1_meetings/260126-acme-corp.md`
-**After:** `1_meetings/260130-acme-corp.md` (if new meeting is Jan 30)
-
-**Steps:**
-1. Read existing file
-2. Update content (rotate meeting, add new section)
-3. Write to new filename with new date
-4. Delete old file
-5. Update all dashboard links
-
----
-
-## TRANSCRIPT INTEGRATION
-
-When user pastes transcript content:
-```markdown
-> [!info]- Transcript
-> {Pasted content here}
-```
-
-The collapsible callout keeps the file scannable while preserving full transcript.
-
-<!-- CUSTOMIZE: If you use a transcription tool, add tool-specific formatting here -->
+| Pattern | Target |
+|---------|--------|
+| "ask about", "discuss", "point:", "talk about" | Questions & Talking Points > Talking points |
+| "question:", "?", "ask:" | Questions & Talking Points > Must-ask |
+| "action:", "todo:", "send", "schedule" | Actions > Mine |
+| "they will", "they committed", "they agreed" | Actions > Theirs |
+| "reflection:", "how it went" | Reflection |
+| "transcript:", "granola" | Transcript (collapsed `> [!info]- Transcript`) |
+| Default | Notes |
 
 ---
 
 ## INFOGRAPHIC GENERATION
 
-Generate visual meeting summaries using image generation (e.g., Gemini 3 native image gen).
+Uses `/slides` (Gemini 3 native image gen). If Gemini API fails, skip infographic generation and note "Infographic skipped: Gemini API unavailable" in the Change Log.
 
-### When to Generate (vs Skip)
+### Three Types of Infographic
 
-| Scenario | Action |
-|----------|--------|
-| **First meeting, light notes** | Skip — don't generate |
-| **First meeting, substantial** (3+ topics OR 2+ outcomes) | Generate company overview + meeting highlights |
-| **Follow-up meeting** | Generate cumulative relationship view |
-| **Transcript added** | Regenerate with discussion content |
-| **Manual request** | `/meeting Company -- regenerate infographic` |
+| Type | Filename | Location | Purpose |
+|------|----------|----------|---------|
+| **Meeting Summary** | `{YYMMDD}-{slug}-summary.png` | Inside `[!quote]- Meeting Summary` callout | Cumulative engagement overview |
+| **Per-Meeting 1-Pager** | `{YYMMDD}-{slug}-meeting.png` | Top of Latest Meeting (after heading, before Overview) | Visual snapshot of this specific meeting |
+| **Company Profile** | `{YYMMDD}-{slug}-profile.png` | Inside `[!quote]+ Company Profile` callout | Company snapshot — generate when Profile section is substantial (≥20 lines) |
 
-**"Substantial" means:**
-- 3+ key discussion topics, OR
-- 2+ concrete outcomes/decisions, OR
-- Transcript added with real content
+**Per-Meeting 1-Pager lifecycle:**
+1. **Pre-meeting (at setup):** Generated with agenda, key questions, attendees, context. Shows what's about to happen.
+2. **Post-meeting (after transcript/notes):** Regenerated with actual outcomes, decisions, action items. Shows what happened.
+3. **When rotated to Previous Meetings:** Stays as-is — the post-meeting version becomes the permanent record.
 
-### Storage
+### When to Generate
 
-- **Location:** `1_meetings/assets/`
-- **Naming:** `{YYMMDD}-{slug}-summary.png`
-- **Example:** `1_meetings/assets/260127-acme-corp-summary.png`
+| Scenario | Summary Infographic | Per-Meeting 1-Pager |
+|----------|:---:|:---:|
+| First meeting, light notes | Skip | Generate (pre-meeting) |
+| First meeting, substantial (≥3 topics OR ≥2 outcomes) | Generate | Generate (pre-meeting) |
+| Follow-up meeting | Update (cumulative) | Generate (pre-meeting) |
+| Transcript/notes added | Regenerate | Regenerate (post-meeting outcomes) |
+| New Meeting mode (rotating latest → history) | Update | Backfill previous if missing |
 
-### Content by Type
+**Every meeting gets a 1-pager.** Even light first meetings — the pre-meeting version with agenda/questions is still useful. When transcript or substantial notes come in, regenerate with actual outcomes.
 
-**First Meeting (Substantial):**
-- Company overview (what they do, key facts)
-- Meeting highlights (key topics discussed)
-- Next steps
+### Storage & Embedding
 
-**Follow-Up Meeting (Cumulative):**
-- Relationship context (first met, meeting count, status)
-- This meeting highlights (key topics, outcomes)
-- Open actions (mine and theirs)
-- Status indicator
+- **Summary path:** `1_meetings/assets/{YYMMDD}-{slug}-summary.png`
+- **Summary embed:** `![[1_meetings/assets/{YYMMDD}-{slug}-summary.png]]` inside the `[!quote]- Meeting Summary` callout
+- **Per-meeting path:** `1_meetings/assets/{YYMMDD}-{slug}-meeting.png`
+- **Per-meeting embed:** `![[1_meetings/assets/{YYMMDD}-{slug}-meeting.png]]` at top of Latest Meeting section (after heading, before Overview callout)
 
-### Prompt Template (Follow-Up Meeting)
+### Generation Command
 
-```
-Create a professional meeting summary infographic:
-
-LAYOUT: Single-panel summary card
-- Aspect ratio: 16:9 (landscape)
-- Background: Warm white (#FAFAF9)
-- Title: "{COMPANY} — Meeting #{N}" in dark slate (#1E293B), 32pt
-- Subtitle: "{Date} · {Topic}" in warm slate (#64748B), 20pt
-
-CONTENT SECTIONS (top to bottom):
-
-1. RELATIONSHIP CONTEXT (small text, gray)
-   - First met: {date}
-   - Status: {relationship status}
-
-2. THIS MEETING (main content, warm slate boxes or bullet list)
-   - {Key topic 1} → {Outcome}
-   - {Key topic 2} → {Outcome}
-
-3. OPEN ACTIONS (checklist style with empty boxes)
-   □ {My action}
-   □ {Their action}
-
-4. STATUS: {emoji} {status text} (bottom right)
-
-STYLE:
-- Minimal modern, clean lines, no illustrations
-- Sans-serif fonts, generous whitespace
-- Warm slate (#64748B) for accents, dark slate (#1E293B) for text
+```bash
+cd "$(git rev-parse --show-toplevel)" && \
+  set -a && source .env && set +a && \
+  python3 ./scripts/gemini_slides.py \
+    --prompts '[{"filename": "{YYMMDD}-{slug}-summary.png", "prompt": "..."}]' \
+    --output 1_meetings/assets/ \
+    --direct
 ```
 
-### Embedding in Meeting File
+### Prompt Style
 
-```markdown
-## Meeting Summary
-
-![[1_meetings/assets/260127-acme-corp-summary.png]]
-```
-
-Place the embed at the top of `## Meeting Summary` so it's visible immediately when you open the note.
+16:9 landscape, warm white (#FAFAF9) background, dark slate (#1E293B) text, warm slate (#64748B) accents. Minimal, text-forward, no illustrations. Content: company snapshot, meeting highlights, open actions, status.
 
 ---
 
-## SEARCH TOOLS — Bring Your Own
+## DASHBOARD UPDATE
 
-This skill works with **any combination of search and scraping tools**. The examples use Exa and Firecrawl, but you can swap in whatever you prefer.
+After **New Contact** or **New Meeting** (not Same Meeting appends):
 
-### Tool Hierarchy Pattern
+1. Scan all `1_meetings/*.md` (except `_dashboard.md`)
+2. Extract frontmatter: `entity`, `latest_meeting`, `next_meeting`, `relationship`, `meeting_count`
+3. Extract content: action items, key outcomes
+4. Rebuild tables: Upcoming, Recent (7 days), Actions (mine + theirs), All Contacts
 
-**Discovery:**
-```
-[Primary semantic search]        → Best quality results (Exa, Tavily, etc.)
-        ↓ fallback
-[Secondary web search]           → Site-specific, recency filter (Firecrawl, Brave, etc.)
-        ↓ fallback
-[Built-in WebSearch]             → Always available, good for breaking news
-```
+---
 
-**Deep Reading:**
-```
-[Primary page scraper]           → JS-rendered content (Firecrawl, Jina Reader, etc.)
-        ↓ fallback
-[Built-in WebFetch]              → Simple static pages
-```
+## TOOL PARAMS (meeting-specific)
 
-<!-- CUSTOMIZE: Add your MCP tools to allowed-tools in frontmatter -->
-<!-- Example with Exa + Firecrawl MCPs: -->
-<!-- allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Task, mcp__exa__web_search_exa, mcp__firecrawl__firecrawl_scrape, mcp__firecrawl__firecrawl_search -->
+Tool hierarchy follows CLAUDE.md. Meeting-specific optimal params:
 
-### Optimal Parameters (If Using Exa + Firecrawl)
-
-**Exa:**
-```json
-{
-  "numResults": 10,
-  "type": "auto",
-  "livecrawl": "preferred",
-  "contextMaxCharacters": 12000
-}
-```
-
-**Firecrawl Scrape:**
-```json
-{
-  "maxAge": 86400000,
-  "onlyMainContent": true,
-  "formats": ["markdown"],
-  "proxy": "auto"
-}
-```
+**Exa:** `numResults: 10`, `type: "auto"`, `livecrawl: "preferred"`, `contextMaxCharacters: 12000`
+**Firecrawl scrape:** `maxAge: 86400000`, `onlyMainContent: true`, `formats: ["markdown"]`, `proxy: "auto"`
 
 ---
 
 ## SLUG GENERATION
 
-Convert entity name to filename slug:
-- Lowercase
-- Replace spaces with hyphens
-- Remove special characters (keep `a-z0-9-`)
-- Collapse multiple hyphens
-- Trim hyphens from ends
+Lowercase → replace spaces with hyphens → remove special chars (keep `a-z0-9-`) → collapse multiple hyphens → trim ends.
 
-**Examples:**
-- "Acme Corp" → `acme-corp`
-- "Jane Doe" → `jane-doe`
-- "Tokyo Design Lab (Japan)" → `tokyo-design-lab-japan`
+Examples: "Acme Corp" → `acme-corp` · "Digital Vorn (Japan)" → `digital-vorn-japan`
 
 ---
 
 ## PRE-OUTPUT VALIDATION
 
-Before finalizing:
 - [ ] File created/updated in `1_meetings/`
 - [ ] Frontmatter complete (entity, latest_meeting, meeting_count)
 - [ ] Appropriate section updated based on mode
-- [ ] Dashboard updated with current state
-- [ ] Research appended (if New Contact or New Meeting mode)
-- [ ] Key Sources section has actual URLs (not placeholders)
-- [ ] Infographic generated (if substantial content)
+- [ ] Dashboard updated
+- [ ] Research appended (if New Contact or New Meeting)
+- [ ] Key Sources has actual URLs
+- [ ] Insights (AI) generated (if substantial content)
+- [ ] Per-meeting 1-pager generated (always — pre-meeting with agenda/questions)
+- [ ] Summary infographic generated/updated (if substantial content)
+- [ ] Company Profile infographic generated (if Profile section ≥20 lines)
+- [ ] Executive Summary callout updated with current context
+- [ ] Reflection auto-populated (if transcript/notes appended)
+- [ ] Previous meeting infographic backfilled (if missing, New Meeting mode)
+- [ ] File renamed with correct date (New Meeting mode)
+- [ ] Cross-references updated in other files pointing to old filename
+- [ ] Nav bar present at top (`🔗` in-file links + `📁` related files)
+- [ ] Change Log updated with today's action
+
+---
+
+## SYNC NOTE
+
+`skills/meeting/references/meeting.md` is a synced copy of this spec.
+

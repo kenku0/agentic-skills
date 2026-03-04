@@ -4,8 +4,6 @@ Open-source skill definitions for AI-assisted workflows. Each skill is a `.md` f
 
 These are redacted versions of production skills — company names, personal paths, and brand-specific details have been replaced with placeholders. The patterns, prompt engineering, and architecture are the real thing.
 
-**Read the deep dives on how these were built:** [ken9u.substack.com](https://ken9u.substack.com/)
-
 ---
 
 ## A Note on Tools
@@ -30,7 +28,7 @@ Evidence-first research analyst with adaptive depth. Parallel agent discovery, s
 
 ### /slides
 
-AI slide generation via Gemini 3 native image gen. Includes anti-AI aesthetic rules, consulting templates, typography enforcement, and iterative refinement loops.
+AI slide generation via Gemini native image gen. Includes anti-AI aesthetic rules, consulting templates, typography enforcement, and iterative refinement loops. Supports reference images for variations/edits.
 
 **Scripts:** `gemini_slides.py`
 
@@ -38,13 +36,41 @@ AI slide generation via Gemini 3 native image gen. Includes anti-AI aesthetic ru
 
 ### /meeting
 
-Persistent per-contact meeting files that compound over time. Auto-detection (new contact vs follow-up), prep briefs, append routing, dashboard aggregation, and infographic generation.
+Persistent per-contact meeting files that compound over time. Auto-detection (new contact vs follow-up), prep briefs, LinkedIn research, append routing, dashboard aggregation, and infographic generation.
 
 **Scripts:** None — pure prompt engineering.
 
 ![meeting workflow](images/meeting-flow.png)
 
-More skills coming soon.
+### /recommendations
+
+Evidence-first product and venue recommendations. 4-agent parallel discovery, multi-AI synthesis (Claude + GPT + Gemini), confidence scoring, Reddit deep dives, and structured comparison tables with dual ranking (best buy vs finest quality).
+
+**Scripts:** `multi_ai_recs.py`
+
+### /writing
+
+Bilingual (EN/JA) writing assistant with multi-AI drafting. Three models draft independently, Claude synthesizes the best version. Persistent draft file with auto-folding, version history, and style learning from past drafts.
+
+**Scripts:** `multi_ai_writer.py`
+
+### /discover
+
+AI opportunity intelligence for enterprise prospects. PE-quality use case discovery with parallel research agents, EBITDA impact sizing, competitive heatmaps, and auto-generated PDF reports. Accepts company + team/person for hyper-specific use cases.
+
+**Scripts:** Requires additional scripts (not yet included in this repo).
+
+### /review
+
+Multi-agent code and content review (5-agent pipeline × 2 cycles). Modes: code changes, visual/UI, design assets, skill/file review. Agents run in parallel with multi-AI synthesis for independent perspective.
+
+**Scripts:** None — pure prompt engineering + optional multi-AI via OpenRouter.
+
+### /plan
+
+Structured planning for code, business, projects, or decisions. Auto-detects domain, calibrates research depth, produces evidence-backed plans with risk registers, dependency mapping, and execution monitoring.
+
+**Scripts:** None — pure prompt engineering + optional multi-AI.
 
 ---
 
@@ -62,7 +88,7 @@ Then invoke with `/slides` in Claude Code.
 
 ### 2. Customize for your brand
 
-Each skill has `[PLACEHOLDER]` markers where you should add your own:
+Each skill has `{PLACEHOLDER}` markers where you should add your own:
 - Company name and logo paths
 - Brand colors and typography
 - Output directory conventions
@@ -70,7 +96,7 @@ Each skill has `[PLACEHOLDER]` markers where you should add your own:
 
 ### 3. Run the scripts (optional)
 
-Scripts are standalone Python files. Only needed if you want the external API integrations:
+Scripts are standalone Python files. Copy them alongside the skill `.md` file. Only needed if you want the external API integrations:
 
 ```bash
 pip install requests img2pdf
@@ -87,7 +113,7 @@ python3 agentic-skills/slides/gemini_slides.py --test
 
 ```
 .claude/commands/skill.md    ← Claude reads this as system prompt
-skills/scripts/script.py     ← Claude calls this via Bash tool (optional)
+scripts/script.py            ← Claude calls this via Bash tool (optional)
 .env                         ← API keys (git-ignored)
 ```
 
@@ -101,8 +127,9 @@ The `.md` file tells Claude *what to do* and *how to think*. The Python script h
 
 **Optional (for enhanced capabilities):**
 - **Gemini API key** — for `/slides` image generation
+- **OpenRouter API key** — for `/writing`, `/recommendations`, `/review` multi-AI synthesis
 - **Exa API key** — for `/web-search` semantic search
-- **Reddit API credentials** — for `/web-search` community search
+- **Reddit API credentials** — for `/web-search` and `/recommendations` community search
 - **Firecrawl API key** — for `/web-search` page scraping
 - **Python 3.10+** with `requests` and `img2pdf`
 
