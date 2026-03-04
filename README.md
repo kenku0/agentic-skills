@@ -109,6 +109,23 @@ python3 agentic-skills/slides/gemini_slides.py --test
 
 ---
 
+## Optional Tool Integrations
+
+Several skills reference external tools/APIs. All are **optional** — each skill has built-in fallbacks (usually Exa semantic search or Claude's built-in WebSearch). Install only the ones you want.
+
+| Tool | Used By | What It Does | Fallback Without It | Sign Up |
+|------|---------|-------------|---------------------|---------|
+| **Bright Data** | `/meeting`, `/discover` | LinkedIn profile + company scraping (full work history, education, skills) | Exa search for LinkedIn metadata (name, title, headline only) | [brightdata.com](https://brightdata.com) — paid, has free trial |
+| **Exa** | `/web-search`, `/recommendations`, `/discover` | Semantic web search (higher quality than keyword search) | Claude's built-in `WebSearch` tool | [exa.ai](https://exa.ai) — free tier available |
+| **Firecrawl** | `/web-search`, `/recommendations` | Web page scraping with JS rendering | Claude's built-in `WebFetch` tool | [firecrawl.dev](https://firecrawl.dev) — free tier available |
+| **Reddit API** | `/web-search`, `/recommendations` | Community thread search + comment extraction | Skip Reddit insights (other sources still work) | [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps) — free |
+| **OpenRouter** | `/writing`, `/recommendations`, `/review` | Multi-AI synthesis (GPT + Gemini alongside Claude) | Claude-only mode (still works, just single-model) | [openrouter.ai](https://openrouter.ai) — pay-per-use |
+| **Gemini API** | `/slides` | Native image generation for slides/infographics | No fallback — required for `/slides` | [ai.google.dev](https://ai.google.dev) — free tier available |
+
+**Env vars go in `.env`** (never in skill files). See each skill's documentation for the specific variable names.
+
+---
+
 ## Architecture
 
 ```
